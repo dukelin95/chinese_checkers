@@ -6,7 +6,9 @@ from math import sin, cos, pi, sqrt
 from AIs import *
 
 # https://www.redblobgames.com/grids/hexagons/
-233.8268590217984
+# 233.8268590217984
+
+# read Q learning, Markov Decision Process
 class Board():
     def __init__(self, mode = ''):
         self.mode = mode
@@ -26,8 +28,8 @@ class Board():
         self.coord_dict[(0, 0)] = self.grid_center() # center
         self.set_up_dict()
         self.player_dict = {
-            'p1': [(4, -8), (3, -7), (4, -7), (2, -6), (3, -6), (4, -6), (1, -5), (2, -5), (3, -5), (4, -5)],
-            'p2': [(-4, 8), (-3, 7), (-4, 7), (-2, 6), (-3, 6), (-4, 6), (-1, 5), (-2, 5), (-3, 5), (-4, 5)]
+            'p1': sorted([(4, -8), (3, -7), (4, -7), (2, -6), (3, -6), (4, -6), (1, -5), (2, -5), (3, -5), (4, -5)]),
+            'p2': sorted([(-4, 8), (-3, 7), (-4, 7), (-2, 6), (-3, 6), (-4, 6), (-1, 5), (-2, 5), (-3, 5), (-4, 5)])
         }
         self.player_colors = {
             'p1' : (255, 0, 0),# red
@@ -93,7 +95,7 @@ class Board():
                     new_hexes.append(new_key)
             if start in self.coord_dict:
                 del self.coord_dict[start]                   
-
+    
     def grid_center(self):
         x = self.num_cols/2
         y = self.num_rows/2
@@ -142,6 +144,7 @@ class Board():
 
         return (c_q + x, c_r + y)
 
+    # returns one step moves
     def get_n_opts(self, axial):
         q = axial[0]
         r = axial[1]
@@ -156,6 +159,7 @@ class Board():
     
         return options
 
+    # only returns jumping options
     def get_j_opts(self, axial, prev_piece = ()):
         q = axial[0]
         r = axial[1]
@@ -182,10 +186,11 @@ class Board():
 
         return options
 
+    # currently handles 2 players, and red as human and yellow as AI if AI 
     def handle_key_event(self, event):
         position = event.pos
         q, r = self.pixel_to_axial(position)
-
+        
         if self.state == 'first':
             if (q, r) in self.n_options:        
                 for opt in self.j_options + self.n_options:
@@ -261,6 +266,7 @@ class Board():
                         self.displayed_opts.append((x,y))
                         pygame.draw.polygon(self.screen, (0, 0, 255), list(self.hex_points(x, y)))          
 
+    # moves piece to axial and cleans up board and occupied dict
     def make_move(self, piece, axial):
         x, y = self.coord_dict[piece]
         color = self.player_colors[self.occupied[piece]]
@@ -269,7 +275,12 @@ class Board():
         pygame.draw.polygon(self.screen, color, list(self.hex_points(x, y)))
         self.occupied[axial] = self.occupied[piece]
         del self.occupied[piece]
+        winner = self.check_win()
+        if winner:
+            print("WINNER: " +  str(winner))
+            self.going = False
 
+    # draw coordinates on board
     def draw_coord(self):
         myfont = pygame.font.SysFont("monospace", 10)
         
@@ -278,6 +289,27 @@ class Board():
             label = myfont.render(str(key[0]) + " " + str(key[1]), 1, (255,255,255))
             self.screen.blit(label, (y - self.hex_half_width + 5, x - 5))
     
+    def check_win(self):
+        # get all occupied spots
+        current_board = {
+            'p1': [],
+            'p2': []    
+        }
+        for key in self.occupied:
+            current_board[self.occupied[key]].append(key)
+
+        # check if any player has taken over other's spot
+        #self.player_dict = {
+        #    'p1': [(4, -8), (3, -7), (4, -7), (2, -6), (3, -6), (4, -6), (1, -5), (2, -5), (3, -5), (4, -5)],
+        #    'p2': [(-4, 8), (-3, 7), (-4, 7), (-2, 6), (-3, 6), (-4, 6), (-1, 5), (-2, 5), (-3, 5), (-4, 5)]
+        #}
+        if sorted(current_board['p1']) == self.player_dict['p2']:
+            return 'p1'
+        if sorted(current_board['p2']) == self.player_dict['p1']:
+            return 'p2'
+        
+        return ''
+
     # set up pieces on board and set up occupied dict
     def init_board(self):
         for key in self.player_dict.keys():

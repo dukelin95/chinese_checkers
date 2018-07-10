@@ -13,9 +13,13 @@ class AI():
         self.screen_height = int((0.75 * self.num_cols + 0.25) * self.hex_height)
         self.screen_width = int((0.5 + self.num_rows) * self.hex_width)
         self.neighbors_dir = [(1, -1), (1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1)]
-        self.player_dict = {
+        self.player_loc = {
             'p1': [],
             'p2': []    
+        }
+        self.player_dict = {
+            'p1': [(4, -8), (3, -7), (4, -7), (2, -6), (3, -6), (4, -6), (1, -5), (2, -5), (3, -5), (4, -5)],
+            'p2': [(-4, 8), (-3, 7), (-4, 7), (-2, 6), (-3, 6), (-4, 6), (-1, 5), (-2, 5), (-3, 5), (-4, 5)]
         }
         self.coord_dict = {}
         self.coord_dict[(0, 0)] = self.grid_center()
@@ -27,13 +31,19 @@ class AI():
     def best_move(self):
         # pick random piece from p2
         options = []
+        count = []
+        for piece in self.player_loc['p2']:
+            count = count + self.get_j_opts(piece) + self.get_n_opts(piece)
+
+        print(len(count))
+
         while not options:
-            piece = random.choice(self.player_dict['p2'])
+            piece = random.choice(self.player_loc['p2'])
             options = self.get_j_opts(piece) + self.get_n_opts(piece)
         
         choice = random.choice(options) 
-        self.player_dict['p2'].append(choice)
-        self.player_dict['p2'].remove(piece)
+        self.player_loc['p2'].append(choice)
+        self.player_loc['p2'].remove(piece)
         return piece, choice
 
     def grid_center(self):
@@ -44,7 +54,7 @@ class AI():
     def set_up_dict(self):
         #set up player dict
         for key in self.occupied:
-            self.player_dict[self.occupied[key]].append(key)
+            self.player_loc[self.occupied[key]].append(key)
 
         new_hexes = [(0, 0)]
         while new_hexes:
