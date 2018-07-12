@@ -1,6 +1,9 @@
 import random
 from math import sin, cos, pi, sqrt
 
+# closest to self.end
+# amount to jump
+
 class AI():
     def __init__(self, occupied):
         self.occupied = occupied
@@ -30,26 +33,37 @@ class AI():
     # go towards self.end
     def best_move(self):
         # pick random piece from p2
-        options = []
+        moves = []
         count = []
         for piece in self.player_loc['p2']:
-            count = count + self.get_j_opts(piece) + self.get_n_opts(piece)
-
-        print(len(count))
-
-        while not options:
-            piece = random.choice(self.player_loc['p2'])
             options = self.get_j_opts(piece) + self.get_n_opts(piece)
+            if options:
+                moves.append((self.get_best_option(piece, options), piece))
         
-        choice = random.choice(options) 
-        self.player_loc['p2'].append(choice)
-        self.player_loc['p2'].remove(piece)
-        return piece, choice
+        choice = sorted(moves).pop()
+        #print choice
+        #print '\n'
+        #self.player_loc['p2'].append(choice)
+        #self.player_loc['p2'].remove(piece)
+        return choice[1], choice[0][1]
+
+    def get_best_option(self, piece, options):
+        max = (0, (99,99))
+        for opt in options:
+            dist = self.get_distance(opt, piece) + (15 - (self.get_distance(opt, self.end)))
+            if dist > max[0]:
+                max = (dist, opt)
+        return max
 
     def grid_center(self):
         x = self.num_cols/2
         y = self.num_rows/2
         return (self.hex_height * (0.5 + (0.75 * x)), ((x % 2) * self.hex_half_width) + ((y * 2 + 1) * self.hex_half_width))
+
+    def get_distance(self, piece, spot):
+        ac = self.axial_to_cube(piece)
+        bc = self.axial_to_cube(spot)
+        return self.cube_distance(ac, bc)
 
     def set_up_dict(self):
         #set up player dict
@@ -107,11 +121,12 @@ class AI():
     
         return options
 
-    def get_j_opts(self, axial, prev_piece = ()):
+    def get_j_opts(self, axial, prev_piece = (), explored = []):
         q = axial[0]
         r = axial[1]
             
         options = []
+        final = []
 
         for dir in self.neighbors_dir:
             neighbor = (q, r)
@@ -128,10 +143,19 @@ class AI():
                         if able:
                             options.append(move)
                     break
+
         if prev_piece in options:
             options.remove(prev_piece)
 
-        return options
+        explored.append(axial)
+        if options:
+            final = final + options
+            for opt in options:
+                if not opt in explored:
+                    final = final + self.get_j_opts(opt, (q,r), final)
+            return final
+        else:
+            return options
 
     def del_grid(self, dirs, hexes):
         new_hexes = hexes
@@ -155,3 +179,12 @@ class AI():
         c_q, c_r = self.grid_center()
 
         return (c_q + x, c_r + y)
+    
+    def axial_to_cube(self, hex):
+        x = hex[0]
+        z = hex[1]
+        y = -x-z
+        return (x, y, z)
+    
+    def cube_distance(self, a, b):
+        return (abs(a[0] - b[0]) + abs(a[1] - b[1]) + abs(a[2] - b[2])) / 2
